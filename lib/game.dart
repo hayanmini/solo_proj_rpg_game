@@ -2,104 +2,129 @@ import 'dart:io';
 import 'dart:math';
 
 import 'package:rpg_game/character.dart';
+import 'package:rpg_game/data.dart';
 import 'package:rpg_game/monster.dart';
 
 class Game {
-  Character character;
-  List<Monster> monster;
-  int defeatedCount;
+  late Character character;
+  late List<Monster> monster;
+  late int defeatedCount;
 
-  Game(this.character, this.monster, this.defeatedCount);
+  Game();
 
   // 게임 시작
-  void startGame() {
+  void startGame() async {
     print("캐릭터의 이름을 입력하세요 : ");
 
-    // 값이 제대로 들어오는지 검증
+    // 입력값 검증
     String? charName = stdin.readLineSync()!;
 
+    // 정규식: 한글(가-힣), 영문 대소문자(A-Za-z)만 허용
+    final regex = RegExp(r'^[가-힣a-zA-Z]+$');
+
+    // 조건 검사
+    if (charName.trim().isEmpty) {
+      print("이름은 비어 있을 수 없습니다.");
+      exit(1);
+    }
+
+    if (!regex.hasMatch(charName)) {
+      print("이름에는 숫자나 특수문자를 사용할 수 없습니다.");
+      exit(1);
+    }
+
     print("게임을 시작합니다!");
-    character.name = charName;
+
+    character = Load.loadChar(charName);
+    monster = Load.loadMonster(character.defense);
     character.showStatus();
 
+    await Future.delayed(Duration(seconds: 2));
     while (true) {
       // 랜덤 몬스터 출현
       var randomMonster = getRandomMonster();
       monster.remove(randomMonster);
 
+      await Future.delayed(Duration(seconds: 2));
       // 전투 진행
-      var result = battle(randomMonster);
-      if (!result) {
-        print("사망");
+      var isWin = await battle(randomMonster);
+      if (!isWin) {
+        print("${character.name}이(가) 쓰러졌습니다.");
         break;
       }
 
-      // 전투 성공
+      print("${randomMonster.name}를 처치하였습니다.");
+
+      if (monster.isEmpty) {
+        print("축하합니다! 모든 몬스터를 물리쳤습니다.");
+        break;
+      }
+
       print("다음 몬스터와 대결하시겠습니까? y/n");
 
       // 전투 지속 여부
-      String? next = stdin.readLineSync()!.trim();
-      if (next == "N" || next == "n") {
-        break;
-      } else {
-        //battle();
+      bool isContinue = false;
+      while (true) {
+        String? next = stdin.readLineSync()!.trim();
+        if (next == "Y" || next == "y") {
+          isContinue = true;
+          break;
+        } else if (next == "N" || next == "n") {
+          isContinue = false;
+          break;
+        }
+        print("다시 입력해주세요.");
       }
+      if (!isContinue) break;
     }
 
+    // 게임 결과 저장
+    print("결과를 저장하시겠습니까? (y/n)");
     String? saveInput = stdin.readLineSync()!.trim();
     if (saveInput == "Y" || saveInput == "y") {
-      //save();
+      var result =
+          "${character.name},${character.hp},${character.hp > 0 ? "승리" : "패배"}";
+      Save.saveData(result);
     }
-    ;
   }
 
   // 전투 진행 로직
-  bool battle(Monster monster) {
+  Future<bool> battle(Monster monster) async {
     while (true) {
       // 캐릭터 턴
-      print("${character.name}의 턴");
+      print("\n${character.name}의 턴");
       print("행동을 선택하세요 (1: 공격, 2: 방어) : ");
 
       // 행동 분기
       String? action = stdin.readLineSync()!.trim();
-
-      // 입력 검증 및 행동 출력
-      bool actionInput = false;
-      while (!actionInput) {
-        if (action == "1") {
-          print(
-              "${character.name}이(가) ${monster.name}에게 ${character.attack}의 데미지를 입혔습니다.");
-        } else if (action == "2") {
-          print("${character.name}이(가) 방어태세를 취하여 0 만큼 체력을 얻었습니다.");
-        } else {
-          print("잘못된 입력입니다. 다시 입력해주세요!");
-          actionInput = true;
-        }
+      if (action == "1") {
+        character.attackMonster(monster);
+        await Future.delayed(Duration(seconds: 2));
+        monster.attackCharacter(character);
+        monster.showStatus();
+      } else if (action == "2") {
+        character.defend(monster);
+      } else {
+        print("잘못된 입력입니다. 다시 입력해주세요!");
+        continue;
       }
 
-      //while (monster.isNotEmpty) {}
+      await Future.delayed(Duration(seconds: 2));
 
       // 전투 종료 확인
       if (character.hp <= 0) {
         return false;
       } else if (monster.hp <= 0) {
-        Monster monsterList = monster;
-        // monsterList.removeAt(index);
+        return true;
       }
-      // 상태 출력
-      character.showStatus();
 
-      // return true;
-      // 몬스터 턴
-      print("${monster.name}의 턴");
-      print(
-          "${monster.name}이(가) ${character.name}에게 ${monster.attack}의 데미지를 입혔습니다.");
+      character.showStatus();
     }
   }
 
   // 랜덤으로 몬스터 생성
   Monster getRandomMonster() {
-    print("새로운 몬스터가 나타났습니다!");
+    print("\n새로운 몬스터가 나타났습니다!");
     var random = Random();
 
     int index = random.nextInt(monster.length);

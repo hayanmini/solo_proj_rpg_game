@@ -1,9 +1,7 @@
 import 'package:rpg_game/character.dart';
 import 'package:rpg_game/utils.dart';
-import 'data.dart';
 
 class Monster extends Utils {
-  // 몬스터 생성자
   Monster({
     required super.name,
     required super.hp,
@@ -11,12 +9,11 @@ class Monster extends Utils {
     required super.defense,
   });
 
-  // 몬스터 데이터 로드
-  List<Monster> monster = Load.loadMonster();
-
   // 몬스터 공격 로직
   void attackCharacter(Character character) {
-    //
+    print("$name의 턴");
+    print("$name이(가) ${character.name}에게 $attack의 데미지를 입혔습니다.");
+    character.hp -= (attack - character.defense);
   }
 
   // 몬스터 상태창
