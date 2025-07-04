@@ -39,13 +39,18 @@ class Game {
     monster = Load.loadMonster(character.defense);
     character.showStatus();
 
-    await Future.delayed(Duration(seconds: 2));
+    if (Random().nextInt(10) <= 2) {
+      character.hp += 10;
+      print("보너스 체력을 얻었습니다! 현재 체력: ${character.hp}");
+    }
+
+    await Future.delayed(Duration(seconds: 1));
     while (true) {
       // 랜덤 몬스터 출현
       var randomMonster = getRandomMonster();
       monster.remove(randomMonster);
 
-      await Future.delayed(Duration(seconds: 2));
+      await Future.delayed(Duration(seconds: 1));
       // 전투 진행
       var isWin = await battle(randomMonster);
       if (!isWin) {
@@ -90,26 +95,46 @@ class Game {
 
   // 전투 진행 로직
   Future<bool> battle(Monster monster) async {
+    var counter = 0;
     while (true) {
       // 캐릭터 턴
       print("\n${character.name}의 턴");
-      print("행동을 선택하세요 (1: 공격, 2: 방어) : ");
+      print("행동을 선택하세요 (1: 공격, 2: 방어, 3: 아이템 사용) : ");
 
       // 행동 분기
       String? action = stdin.readLineSync()!.trim();
       if (action == "1") {
         character.attackMonster(monster);
-        await Future.delayed(Duration(seconds: 2));
+        await Future.delayed(Duration(seconds: 1));
         monster.attackCharacter(character);
         monster.showStatus();
       } else if (action == "2") {
         character.defend(monster);
+      } else if (action == "3") {
+        if (character.hasItem) {
+          character.hasItem = false;
+          character.usingItem = true;
+          print("아이템을 사용하였습니다!");
+          continue;
+        } else {
+          print("이미 사용한 아이템입니다.");
+          continue;
+        }
       } else {
         print("잘못된 입력입니다. 다시 입력해주세요!");
         continue;
       }
 
-      await Future.delayed(Duration(seconds: 2));
+      /// 3턴마다 방어력 증가
+      character.usingItem = false;
+      counter++;
+      if (counter == 3) {
+        counter = 0;
+        monster.defense += 2;
+        print('${monster.name}의 방어력이 증가했습니다! 현재 방어력: ${monster.defense}');
+      }
+
+      await Future.delayed(Duration(seconds: 1));
 
       // 전투 종료 확인
       if (character.hp <= 0) {

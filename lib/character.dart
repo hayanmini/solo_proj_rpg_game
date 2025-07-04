@@ -2,6 +2,9 @@ import 'package:rpg_game/monster.dart';
 import 'package:rpg_game/utils.dart';
 
 class Character extends Utils {
+  bool hasItem = true;
+  bool usingItem = false;
+
   Character({
     required super.name,
     required super.hp,
@@ -11,8 +14,12 @@ class Character extends Utils {
 
   // 캐릭터 공격 로직
   void attackMonster(Monster monster) {
-    print("$name이(가) ${monster.name}에게 $attack의 데미지를 입혔습니다.\n");
-    monster.hp -= attack;
+    var realAttack = attack;
+    if (usingItem) {
+      realAttack *= 2;
+    }
+    print("$name이(가) ${monster.name}에게 $realAttack의 데미지를 입혔습니다.\n");
+    monster.hp -= (realAttack - monster.defense);
   }
 
   // 방어
