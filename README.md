@@ -113,5 +113,5 @@ dart run bin/main.dart
 
 ### 📚 참고 자료
 
-스파르타코딩 Dart 강의
-[공식 Dart 문서](https://dart.dev)
+✔ 스파르타코딩 Dart 강의
+✔ [공식 Dart 문서](https://dart.dev)
